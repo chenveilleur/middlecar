@@ -1,0 +1,122 @@
+#include "MotorDriver.h"
+#include <stdlib.h>
+
+// 引入 CubeMX 生成的 TIM2 句柄 (通常定义在 tim.c 中)
+extern TIM_HandleTypeDef htim2;
+
+MotorDriver::MotorDriver() {
+    currentSpeedL = 0;
+    currentSpeedR = 0;
+    targetSpeedL = 0;
+    targetSpeedR = 0;
+}
+
+void MotorDriver::Init() {
+    // 启动 TIM2 的通道 1 (左轮 PA0) 和通道 2 (右轮 PA1) 的 PWM 输出
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+    
+    // 初始输出为 0
+    SetHardwarePWM_L(0);
+    SetHardwarePWM_R(0);
+}
+
+//????
+
+void MotorDriver::SetTargetSpeed(int16_t speedL, int16_t speedR) {
+    // pwm值：-100 ~ 100
+    if(speedL > 100) speedL = 100;
+    if(speedL < -100) speedL = -100;
+    if(speedR > 100) speedR = 100;
+    if(speedR < -100) speedR = -100;
+
+    targetSpeedL = speedL;
+    targetSpeedR = speedR;
+}
+
+void MotorDriver::Update() {
+    // --- 处理左轮软启动 ---
+    if (currentSpeedL < targetSpeedL) {
+        currentSpeedL += ACCEL_STEP;
+        if (currentSpeedL > targetSpeedL) currentSpeedL = targetSpeedL; // 防止超调
+    } else if (currentSpeedL > targetSpeedL) {
+        currentSpeedL -= ACCEL_STEP;
+        if (currentSpeedL < targetSpeedL) currentSpeedL = targetSpeedL;
+    }
+
+    // --- 处理右轮软启动 ---
+    if (currentSpeedR < targetSpeedR) {
+        currentSpeedR += ACCEL_STEP;
+        if (currentSpeedR > targetSpeedR) currentSpeedR = targetSpeedR;
+    } else if (currentSpeedR > targetSpeedR) {
+        currentSpeedR -= ACCEL_STEP;
+        if (currentSpeedR < targetSpeedR) currentSpeedR = targetSpeedR;
+    }
+
+    // 将计算好的平滑速度写入底层硬件
+    SetHardwarePWM_L(currentSpeedL);
+    SetHardwarePWM_R(currentSpeedR);
+}
+
+// --- 底层硬件封装 ---
+void MotorDriver::SetHardwarePWM_L(int16_t speed) {
+    // 0：释放/停止（两脚都 RESET），>0：前进，<0：后退
+    if (speed > 0) {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
+    } else if (speed < 0) {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET);
+    } else {
+        // speed == 0：选择释放（不制动）。若需短路制动可把两脚都 SET/RESET。
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
+    }
+
+    // 映射 -100..100 -> 0..ARR（确保单位与定时器时钟/预分频一致）
+    uint32_t arr = (htim2.Init.Period == 0) ? 1U : (uint32_t)htim2.Init.Period;
+    uint32_t duty = (arr * (uint32_t)abs(speed)) / 100U;
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, duty);
+}
+
+void MotorDriver::SetHardwarePWM_R(int16_t speed) {
+    // 判断方向并设置 BIN1 (PB14) 和 BIN2 (PB15)
+    if (speed >= 0) {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
+    } else {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
+    }
+    // 写入 PWM 占空比
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, abs(speed));
+}
+
+// -------------------------------------------------------------------------
+// C wrappers for MotorDriver
+// -------------------------------------------------------------------------
+extern "C" {
+
+typedef void* MotorDriver_c_t;
+
+MotorDriver_c_t MotorDriver_create(void) {
+    return reinterpret_cast<MotorDriver_c_t>(new MotorDriver());
+}
+
+void MotorDriver_destroy(MotorDriver_c_t h) {
+    delete reinterpret_cast<MotorDriver*>(h);
+}
+
+void MotorDriver_init(MotorDriver_c_t h) {
+    reinterpret_cast<MotorDriver*>(h)->Init();
+}
+
+void MotorDriver_setTargetSpeed(MotorDriver_c_t h, int16_t left, int16_t right) {
+    reinterpret_cast<MotorDriver*>(h)->SetTargetSpeed(left, right);
+}
+
+void MotorDriver_update(MotorDriver_c_t h) {
+    reinterpret_cast<MotorDriver*>(h)->Update();
+}
+
+}

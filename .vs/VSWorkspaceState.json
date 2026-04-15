@@ -1,0 +1,15 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\Core",
+    "\\Core\\Driver",
+    "\\Core\\Driver\\MotorDriver",
+    "\\Core\\Driver\\SonarSensor",
+    "\\Core\\Inc",
+    "\\Core\\Src",
+    "\\Debug",
+    "\\Drivers"
+  ],
+  "SelectedNode": "\\Core\\Driver\\SonarSensor\\SonarSensor.h",
+  "PreviewInSolutionExplorer": false
+}

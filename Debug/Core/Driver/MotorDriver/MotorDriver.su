@@ -1,0 +1,11 @@
+../Core/Driver/MotorDriver/MotorDriver.cpp:7:1:MotorDriver::MotorDriver()	16	static
+../Core/Driver/MotorDriver/MotorDriver.cpp:14:6:void MotorDriver::Init()	16	static
+../Core/Driver/MotorDriver/MotorDriver.cpp:26:6:void MotorDriver::SetTargetSpeed(int16_t, int16_t)	16	static
+../Core/Driver/MotorDriver/MotorDriver.cpp:37:6:void MotorDriver::Update()	16	static
+../Core/Driver/MotorDriver/MotorDriver.cpp:62:6:void MotorDriver::SetHardwarePWM_L(int16_t)	24	static
+../Core/Driver/MotorDriver/MotorDriver.cpp:82:6:void MotorDriver::SetHardwarePWM_R(int16_t)	16	static
+../Core/Driver/MotorDriver/MotorDriver.cpp:102:17:void* MotorDriver_create()	16	static
+../Core/Driver/MotorDriver/MotorDriver.cpp:106:6:void MotorDriver_destroy(MotorDriver_c_t)	16	static
+../Core/Driver/MotorDriver/MotorDriver.cpp:110:6:void MotorDriver_init(MotorDriver_c_t)	16	static
+../Core/Driver/MotorDriver/MotorDriver.cpp:114:6:void MotorDriver_setTargetSpeed(MotorDriver_c_t, int16_t, int16_t)	16	static
+../Core/Driver/MotorDriver/MotorDriver.cpp:118:6:void MotorDriver_update(MotorDriver_c_t)	16	static
